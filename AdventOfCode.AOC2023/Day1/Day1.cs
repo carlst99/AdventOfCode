@@ -1,11 +1,13 @@
-﻿using AdventOfCode.Core;
+﻿using System.Buffers;
+using AdventOfCode.Core;
 
 namespace AdventOfCode.AOC2023.Day1;
 
+[Day(1)]
 public class Day1 : IDay
 {
-    private static readonly char[] DIGITS = [ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' ];
-    private static readonly string[] WORDS =
+    private static readonly SearchValues<char> DigitSearchValues = SearchValues.Create("0123456789");
+    private static readonly string[] DigitWords =
     [
         "zero",
         "one",
@@ -19,8 +21,6 @@ public class Day1 : IDay
         "nine"
     ];
 
-    public int Day => 1;
-
     public void Run(ReadOnlySpan<string> args)
     {
         string[] lines = File.ReadAllLines("Day1\\input.txt");
@@ -32,10 +32,10 @@ public class Day1 : IDay
     {
         long sum = 0;
 
-        foreach (string element in lines)
+        foreach (ReadOnlySpan<char> element in lines)
         {
-            int firstDigitIdx = element.IndexOfAny(DIGITS);
-            int lastDigitIdx = element.LastIndexOfAny(DIGITS);
+            int firstDigitIdx = element.IndexOfAny(DigitSearchValues);
+            int lastDigitIdx = element.LastIndexOfAny(DigitSearchValues);
 
             // <char> - 0x30 converts ascii value to numeric. x10 to first number to shift into 10s place value
             sum += ((element[firstDigitIdx] - 0x30) * 10) + element[lastDigitIdx] - 0x30;
@@ -48,10 +48,10 @@ public class Day1 : IDay
     {
         long sum = 0;
 
-        foreach (string element in lines)
+        foreach (ReadOnlySpan<char> element in lines)
         {
-            int firstDigitIdx = element.IndexOfAny(DIGITS);
-            int lastDigitIdx = element.LastIndexOfAny(DIGITS);
+            int firstDigitIdx = element.IndexOfAny(DigitSearchValues);
+            int lastDigitIdx = element.LastIndexOfAny(DigitSearchValues);
             int? firstWordIdx = FindIndexOfWord(element, false, out int firstWordValue);
             int? lastWordIdx = FindIndexOfWord(element, true, out int lastWordValue);
 
@@ -78,17 +78,17 @@ public class Day1 : IDay
     /// <param name="fromEnd">Whether to search from the end of the <paramref name="element"/>.</param>
     /// <param name="value">The numeric value of the first digit word, if one is found.</param>
     /// <returns>The index of the first located word, or <c>-1</c> if no word is found.</returns>
-    private static int FindIndexOfWord(string element, bool fromEnd, out int value)
+    private static int FindIndexOfWord(ReadOnlySpan<char> element, bool fromEnd, out int value)
     {
         value = 0;
 
         int increment = fromEnd ? -1 : 1;
         int startIndex = fromEnd
-            ? element.Length - WORDS.Min(x => x.Length)
+            ? element.Length - DigitWords.Min(x => x.Length)
             : 0;
         int stopIndex = fromEnd
             ? -1
-            : element.Length - WORDS.Min(x => x.Length);
+            : element.Length - DigitWords.Min(x => x.Length);
 
         // Work our way inwards, checking each character in the element to see if it is the start of a word
         for (int i = startIndex; i != stopIndex; i += increment)
@@ -98,15 +98,15 @@ public class Day1 : IDay
                 return -1;
 
             // Check each digit word, to see if it can be found at the index of the current character
-            for (int j = 0; j < WORDS.Length; j++)
+            for (int j = 0; j < DigitWords.Length; j++)
             {
-                string word = WORDS[j];
+                string word = DigitWords[j];
                 int spanLength = Math.Min(word.Length, element.Length - i);
 
                 // We could theoretically do a StartsWith() here, and skip having to calculate the spanLength.
-                // However, this would fail if one of the WORDS began with another value of WORDS.
+                // However, this would fail if one of the DigitWords began with another value of DigitWords.
                 // Even though this can never occur with digit words, we may as well plan for it.
-                if (!element.AsSpan(i, spanLength).SequenceEqual(word))
+                if (!element.Slice(i, spanLength).SequenceEqual(word))
                     continue;
 
                 value = j;
